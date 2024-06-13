@@ -1,0 +1,30 @@
+version: 0.2
+
+# https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-cd-pipeline.html
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - env
+      - aws --version
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 599723459925.dkr.ecr.us-east-1.amazonaws.com
+      - REPOSITORY_URI=599723459925.dkr.ecr.us-east-1.amazonaws.com/nodejs-server-private:latest
+        #IMAGE_TAG=$(echo release-$CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-10)
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build -t $REPOSITORY_URI .
+        # docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker images...
+      - docker push $REPOSITORY_URI
+        # docker push $REPOSITORY_URI:$IMAGE_TAG
+      - echo Writing image definitions file...
+      - printf '[{"name":"nodejs-server-private","imageUri":"599723459925.dkr.ecr.us-east-1.amazonaws.com/nodejs-server-private:latest"}]' > imagedefinitions.json
+        # $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      
+artifacts:
+  files: imagedefinitions.json
